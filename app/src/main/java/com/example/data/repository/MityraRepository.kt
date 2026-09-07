@@ -1,14 +1,17 @@
 package com.example.data.repository
 
 import com.example.R
+import com.example.data.local.AdminDao
 import com.example.data.local.BookingDao
 import com.example.data.local.ChatDao
 import com.example.data.local.UserProfileDao
 import com.example.data.model.BookingEntity
 import com.example.data.model.ChatMessageEntity
 import com.example.data.model.Companion
+import com.example.data.model.CompanionApplicationEntity
 import com.example.data.model.CompanionGender
 import com.example.data.model.EventCategory
+import com.example.data.model.MembershipPaymentEntity
 import com.example.data.model.Review
 import com.example.data.model.UserProfileEntity
 import com.example.data.model.VerificationInfo
@@ -19,17 +22,22 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.launch
 
 class MityraRepository(
     private val bookingDao: BookingDao,
     private val chatDao: ChatDao,
-    private val userProfileDao: UserProfileDao
+    private val userProfileDao: UserProfileDao,
+    private val adminDao: AdminDao
 ) {
     private val scope = CoroutineScope(Dispatchers.IO)
 
     private val _customCompanions = MutableStateFlow<List<Companion>>(emptyList())
     val customCompanions: Flow<List<Companion>> = _customCompanions.asStateFlow()
+
+    val companionApplications: Flow<List<CompanionApplicationEntity>> = adminDao.getAllApplications()
+    val membershipPayments: Flow<List<MembershipPaymentEntity>> = adminDao.getAllPayments()
 
     fun getAllCompanions(): List<Companion> {
         return companionsList + _customCompanions.value
@@ -371,7 +379,142 @@ class MityraRepository(
                     kycDocumentType = "Aadhaar Card",
                     kycIdMasked = "XXXX-XXXX-8921",
                     avatarGradientStart = 0xFFFF5E62,
-                    avatarGradientEnd = 0xFF7928CA
+                    avatarGradientEnd = 0xFF7928CA,
+                    hasActiveMembership = false
+                )
+            )
+        }
+
+        // Initialize sample companion applications for admin console
+        val existingApps = adminDao.getAllApplications().firstOrNull() ?: emptyList()
+        if (existingApps.isEmpty()) {
+            adminDao.insertApplication(
+                CompanionApplicationEntity(
+                    id = "app_101",
+                    userId = "usr_aarav_21",
+                    name = "Aarav Kapoor",
+                    age = 25,
+                    gender = "Boy",
+                    city = "Bengaluru",
+                    neighborhood = "Koramangala 4th Block",
+                    phone = "+91 98450 11234",
+                    email = "aarav.kapoor@gmail.com",
+                    bio = "Standup comedy fan, foodie explorer, and board games enthusiast. Love hosting casual cafe meetups and dinner companionships.",
+                    interests = "Standup Comedy 🎤, Board Games 🎲, Coffee Tasting ☕, Pub Quiz 🧠",
+                    languages = "English, Hindi, Kannada",
+                    primaryCategory = "Casual Hangouts",
+                    hourlyRate = 600,
+                    boundaries = "Strictly platonic, Public venues only, No alcohol-heavy environments",
+                    kycDocumentType = "Aadhaar Card",
+                    kycIdMasked = "XXXX-XXXX-4519",
+                    isKycVerified = true,
+                    status = "PENDING",
+                    adminNotes = "Aadhaar biometric verified. Police check pending verification.",
+                    submittedAt = System.currentTimeMillis() - 7200000
+                )
+            )
+            adminDao.insertApplication(
+                CompanionApplicationEntity(
+                    id = "app_102",
+                    userId = "usr_sanya_33",
+                    name = "Sanya Malhotra",
+                    age = 23,
+                    gender = "Girl",
+                    city = "Delhi NCR",
+                    neighborhood = "Hauz Khas Village",
+                    phone = "+91 98110 99882",
+                    email = "sanya.m@outlook.com",
+                    bio = "Classical dancer & cultural guide. Available for historical monument tours, theater nights, and curated art gallery events.",
+                    interests = "Classical Dance 💃, Heritage Walks 🏛️, Modern Art 🎨, Literary Festivals 📖",
+                    languages = "English, Hindi",
+                    primaryCategory = "Event Companions",
+                    hourlyRate = 850,
+                    boundaries = "Public heritage & cultural venues only. Formal pre-booking required.",
+                    kycDocumentType = "Passport",
+                    kycIdMasked = "ZXXXXXX41",
+                    isKycVerified = true,
+                    status = "PENDING",
+                    adminNotes = "Passport photo matches selfie. Ready for final partner approval.",
+                    submittedAt = System.currentTimeMillis() - 14400000
+                )
+            )
+            adminDao.insertApplication(
+                CompanionApplicationEntity(
+                    id = "app_103",
+                    userId = "usr_vikram_88",
+                    name = "Vikram Singhania",
+                    age = 28,
+                    gender = "Boy",
+                    city = "Mumbai",
+                    neighborhood = "Lower Parel",
+                    phone = "+91 99201 55667",
+                    email = "vikram.s@singhania.io",
+                    bio = "Architect and jazz enthusiast. Sophisticated dinner companion for fine dining and rooftop networking gatherings.",
+                    interests = "Fine Dining 🍷, Architecture 🏛️, Jazz & Vinyl 🎷, Cigar Lounge 🍸",
+                    languages = "English, Hindi, German",
+                    primaryCategory = "Dinner Dates",
+                    hourlyRate = 1100,
+                    boundaries = "Five-star hotel lounges & premium bistros only.",
+                    kycDocumentType = "Driving License",
+                    kycIdMasked = "MH-01-XXXX-9912",
+                    isKycVerified = true,
+                    status = "APPROVED",
+                    adminNotes = "VIP Host certified. Shield Level 3 verified.",
+                    submittedAt = System.currentTimeMillis() - 86400000,
+                    reviewedAt = System.currentTimeMillis() - 43200000
+                )
+            )
+        }
+
+        // Initialize sample ₹49 Razorpay membership transactions
+        val existingPayments = adminDao.getAllPayments().firstOrNull() ?: emptyList()
+        if (existingPayments.isEmpty()) {
+            adminDao.insertPayment(
+                MembershipPaymentEntity(
+                    paymentId = "pay_RzpMityra99281",
+                    orderId = "order_Mityra_Sub_7812",
+                    userId = "usr_neha_54",
+                    userName = "Neha Deshmukh",
+                    userPhone = "+91 98200 44551",
+                    userEmail = "neha.deshmukh@gmail.com",
+                    amount = 49,
+                    paymentMethod = "UPI (Google Pay)",
+                    status = "SUCCESS",
+                    planName = "Mityra VIP Club (₹49/mo)",
+                    razorpaySignature = "rzp_sig_a78fb12948cbb9",
+                    timestamp = System.currentTimeMillis() - 3600000 * 4
+                )
+            )
+            adminDao.insertPayment(
+                MembershipPaymentEntity(
+                    paymentId = "pay_RzpMityra88192",
+                    orderId = "order_Mityra_Sub_7813",
+                    userId = "usr_aditya_12",
+                    userName = "Aditya Kulkarni",
+                    userPhone = "+91 99302 77881",
+                    userEmail = "aditya.k@techcorp.in",
+                    amount = 49,
+                    paymentMethod = "Credit Card (Visa •• 4242)",
+                    status = "SUCCESS",
+                    planName = "Mityra VIP Club (₹49/mo)",
+                    razorpaySignature = "rzp_sig_cd910248fca889",
+                    timestamp = System.currentTimeMillis() - 3600000 * 18
+                )
+            )
+            adminDao.insertPayment(
+                MembershipPaymentEntity(
+                    paymentId = "pay_RzpMityra77103",
+                    orderId = "order_Mityra_Sub_7814",
+                    userId = "usr_priya_66",
+                    userName = "Priya Nambiar",
+                    userPhone = "+91 98451 33221",
+                    userEmail = "priya.n@designstudio.co",
+                    amount = 49,
+                    paymentMethod = "UPI (PhonePe)",
+                    status = "SUCCESS",
+                    planName = "Mityra VIP Club (₹49/mo)",
+                    razorpaySignature = "rzp_sig_ff192804b901ac",
+                    timestamp = System.currentTimeMillis() - 3600000 * 36
                 )
             )
         }
@@ -381,5 +524,87 @@ class MityraRepository(
 
     suspend fun saveUserProfile(profile: UserProfileEntity) {
         userProfileDao.saveUserProfile(profile)
+    }
+
+    suspend fun submitCompanionApplication(application: CompanionApplicationEntity) {
+        adminDao.insertApplication(application)
+    }
+
+    suspend fun approveApplication(applicationId: String, adminNotes: String = "Approved by Operations Admin") {
+        adminDao.updateApplicationStatus(
+            id = applicationId,
+            status = "APPROVED",
+            notes = adminNotes,
+            reviewedAt = System.currentTimeMillis()
+        )
+        // If it's a registered user, dynamically ensure they appear in customCompanions
+        val app = adminDao.getApplicationById(applicationId)
+        if (app != null) {
+            val genderEnum = when (app.gender.lowercase()) {
+                "boy", "male" -> CompanionGender.BOY
+                "girl", "female" -> CompanionGender.GIRL
+                else -> CompanionGender.ANY
+            }
+            val categoryEnum = when (app.primaryCategory.lowercase()) {
+                "movie", "movie partner", "movie partners" -> EventCategory.MOVIE_PARTNER
+                "event", "event companion", "event companions" -> EventCategory.EVENT_COMPANION
+                "party", "party partner", "party partners" -> EventCategory.PARTY_PARTNER
+                "hangout", "casual hangout", "casual hangouts" -> EventCategory.CASUAL_HANGOUT
+                else -> EventCategory.DINNER_DATE
+            }
+            val comp = Companion(
+                id = "approved_${app.id}",
+                name = app.name,
+                age = app.age,
+                gender = genderEnum,
+                city = app.city,
+                neighborhood = app.neighborhood,
+                primaryCategory = categoryEnum,
+                hourlyRate = app.hourlyRate,
+                rating = 5.0f,
+                reviewCount = 1,
+                bio = app.bio,
+                interests = app.interests.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                languages = app.languages.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                boundaries = app.boundaries.split(",").map { it.trim() }.filter { it.isNotBlank() },
+                imageResId = R.drawable.img_comp_kabir,
+                isVerified = true,
+                verificationInfo = VerificationInfo(
+                    isGovtIdVerified = true,
+                    isBiometricChecked = true,
+                    isPoliceClearanceValid = true,
+                    badgeLevel = "Mityra Shield Level 3 (Verified Partner)"
+                ),
+                reviews = listOf(
+                    Review("Mityra Operations", 5.0f, "Today", "Approved via Admin Background Checks and Document Verification.", "Partner Induction")
+                )
+            )
+            registerCustomCompanion(comp)
+        }
+    }
+
+    suspend fun rejectApplication(applicationId: String, reason: String = "Rejected by Admin Operations") {
+        adminDao.updateApplicationStatus(
+            id = applicationId,
+            status = "REJECTED",
+            notes = reason,
+            reviewedAt = System.currentTimeMillis()
+        )
+        // Remove from custom companions if present
+        _customCompanions.value = _customCompanions.value.filterNot { it.id == "approved_$applicationId" }
+    }
+
+    suspend fun recordRazorpayMembershipPayment(payment: MembershipPaymentEntity) {
+        adminDao.insertPayment(payment)
+        // Update user profile membership status
+        val currentProfile = userProfileDao.getUserProfileOnce()
+        if (currentProfile != null) {
+            val updated = currentProfile.copy(
+                hasActiveMembership = true,
+                membershipPaymentId = payment.paymentId,
+                membershipExpiry = payment.validUntil
+            )
+            userProfileDao.saveUserProfile(updated)
+        }
     }
 }

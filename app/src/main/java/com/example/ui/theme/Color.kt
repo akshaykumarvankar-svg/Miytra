@@ -23,8 +23,11 @@ val MityraPurpleLight = Color(0xFFA564F7)
 
 // Safety & Badges
 val MityraVerifiedTeal = Color(0xFF00F5D4)
+val MityraTeal = Color(0xFF00F5D4)
 val MityraSosRed = Color(0xFFFF2244)
 val MityraSuccessGreen = Color(0xFF10B981)
+val MityraSafetyGreen = Color(0xFF10B981)
+val MityraCoralDark = Color(0xFFD62252)
 
 // Neutral Text
 val MityraTextPrimary = Color(0xFFF9FAFB)

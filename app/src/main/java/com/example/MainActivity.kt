@@ -21,8 +21,10 @@ import com.example.ui.ScreenTab
 import com.example.ui.components.FakeCallOverlay
 import com.example.ui.components.MityraBottomNav
 import com.example.ui.components.MityraTopBar
+import com.example.ui.components.RazorpayCheckoutModal
 import com.example.ui.components.SosEmergencyModal
 import com.example.ui.components.VerificationBadgeModal
+import com.example.ui.screens.AdminPanelScreen
 import com.example.ui.screens.BookingFlowScreen
 import com.example.ui.screens.ChatScreen
 import com.example.ui.screens.CompanionDetailScreen
@@ -89,10 +91,27 @@ fun MityraApp(viewModel: MityraViewModel) {
     val cardExpiry by viewModel.cardExpiry.collectAsStateWithLifecycle()
     val cardCvv by viewModel.cardCvv.collectAsStateWithLifecycle()
 
+    val isAdminPanelOpen by viewModel.isAdminPanelOpen.collectAsStateWithLifecycle()
+    val companionApplications by viewModel.companionApplications.collectAsStateWithLifecycle()
+    val membershipPayments by viewModel.membershipPayments.collectAsStateWithLifecycle()
+    val adminFilterStatus by viewModel.adminFilterStatus.collectAsStateWithLifecycle()
+
+    val isRazorpayModalOpen by viewModel.isRazorpayModalOpen.collectAsStateWithLifecycle()
+    val razorpaySelectedMethod by viewModel.razorpaySelectedMethod.collectAsStateWithLifecycle()
+    val razorpayUpiApp by viewModel.razorpayUpiApp.collectAsStateWithLifecycle()
+    val razorpayCustomVpa by viewModel.razorpayCustomVpa.collectAsStateWithLifecycle()
+    val razorpayCardNumber by viewModel.razorpayCardNumber.collectAsStateWithLifecycle()
+    val razorpayCardExpiry by viewModel.razorpayCardExpiry.collectAsStateWithLifecycle()
+    val razorpayCardCvv by viewModel.razorpayCardCvv.collectAsStateWithLifecycle()
+    val razorpaySelectedBank by viewModel.razorpaySelectedBank.collectAsStateWithLifecycle()
+    val isRazorpayProcessing by viewModel.isRazorpayProcessing.collectAsStateWithLifecycle()
+    val razorpaySuccessPayment by viewModel.razorpaySuccessPayment.collectAsStateWithLifecycle()
+
     // Handle back button behavior
-    val isFullScreenFlowOpen = isSelfRegisterOpen || chatCompanion != null || isPaymentScreenOpen || bookingCompanion != null || selectedCompanion != null
+    val isFullScreenFlowOpen = isAdminPanelOpen || isSelfRegisterOpen || chatCompanion != null || isPaymentScreenOpen || bookingCompanion != null || selectedCompanion != null
     BackHandler(enabled = isFullScreenFlowOpen) {
         when {
+            isAdminPanelOpen -> viewModel.closeAdminPanel()
             isSelfRegisterOpen -> viewModel.closeSelfRegister()
             chatCompanion != null -> viewModel.closeChat()
             isPaymentScreenOpen -> viewModel.closePaymentScreen()
@@ -132,6 +151,17 @@ fun MityraApp(viewModel: MityraViewModel) {
         ) {
             // Main Navigation & Screens
             when {
+                isAdminPanelOpen -> {
+                    AdminPanelScreen(
+                        applications = companionApplications,
+                        payments = membershipPayments,
+                        selectedFilterStatus = adminFilterStatus,
+                        onFilterStatusChange = { viewModel.setAdminFilterStatus(it) },
+                        onApproveApplication = { id, notes -> viewModel.approveCompanionApplication(id, notes) },
+                        onRejectApplication = { id, reason -> viewModel.rejectCompanionApplication(id, reason) },
+                        onClose = { viewModel.closeAdminPanel() }
+                    )
+                }
                 isSelfRegisterOpen -> {
                     SelfRegisterScreen(
                         existingProfile = userProfile,
@@ -238,7 +268,8 @@ fun MityraApp(viewModel: MityraViewModel) {
                                 onBookClick = { viewModel.startBookingFlow(it) },
                                 onChatClick = { viewModel.openChat(it) },
                                 onVerifyClick = { viewModel.openVerifiedBadgeDetails(it) },
-                                onSelfRegisterClick = { viewModel.openSelfRegister() }
+                                onSelfRegisterClick = { viewModel.openSelfRegister() },
+                                onSubscribeMembershipClick = { viewModel.openRazorpayCheckout() }
                             )
                         }
                         ScreenTab.BOOKINGS -> {
@@ -264,7 +295,9 @@ fun MityraApp(viewModel: MityraViewModel) {
                         ScreenTab.PROFILE -> {
                             ProfileScreen(
                                 userProfile = userProfile,
-                                onEditOrRegisterClick = { viewModel.openSelfRegister() }
+                                onEditOrRegisterClick = { viewModel.openSelfRegister() },
+                                onSubscribeMembershipClick = { viewModel.openRazorpayCheckout() },
+                                onOpenAdminPanelClick = { viewModel.openAdminPanel() }
                             )
                         }
                     }
@@ -272,6 +305,31 @@ fun MityraApp(viewModel: MityraViewModel) {
             }
 
             // Overlays and Modals
+            if (isRazorpayModalOpen) {
+                RazorpayCheckoutModal(
+                    userEmail = userProfile?.email ?: "guest.user@example.com",
+                    userPhone = userProfile?.phone ?: "+91 98201 44892",
+                    selectedMethod = razorpaySelectedMethod,
+                    onMethodChange = { viewModel.setRazorpayMethod(it) },
+                    selectedUpiApp = razorpayUpiApp,
+                    onUpiAppChange = { viewModel.setRazorpayUpiApp(it) },
+                    customVpa = razorpayCustomVpa,
+                    onCustomVpaChange = { viewModel.setRazorpayCustomVpa(it) },
+                    cardNumber = razorpayCardNumber,
+                    onCardNumberChange = { num -> viewModel.setRazorpayCardDetails(num, razorpayCardExpiry, razorpayCardCvv) },
+                    cardExpiry = razorpayCardExpiry,
+                    onCardExpiryChange = { exp -> viewModel.setRazorpayCardDetails(razorpayCardNumber, exp, razorpayCardCvv) },
+                    cardCvv = razorpayCardCvv,
+                    onCardCvvChange = { cvv -> viewModel.setRazorpayCardDetails(razorpayCardNumber, razorpayCardExpiry, cvv) },
+                    selectedBank = razorpaySelectedBank,
+                    onBankChange = { viewModel.setRazorpayBank(it) },
+                    isProcessing = isRazorpayProcessing,
+                    successPayment = razorpaySuccessPayment,
+                    onConfirmPayment = { viewModel.confirmRazorpayPayment() },
+                    onDismiss = { viewModel.closeRazorpayCheckout() },
+                    onDoneSuccess = { viewModel.closeRazorpayCheckout() }
+                )
+            }
             if (isSosModalOpen) {
                 SosEmergencyModal(
                     onDismiss = { viewModel.closeSosModal() },

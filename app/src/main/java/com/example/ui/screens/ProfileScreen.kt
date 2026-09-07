@@ -22,13 +22,17 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.AdminPanelSettings
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Verified
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -62,6 +66,7 @@ import com.example.ui.theme.MityraDarkBackground
 import com.example.ui.theme.MityraDarkSurface
 import com.example.ui.theme.MityraDarkSurfaceVariant
 import com.example.ui.theme.MityraGold
+import com.example.ui.theme.MityraSafetyGreen
 import com.example.ui.theme.MityraTextMuted
 import com.example.ui.theme.MityraTextPrimary
 import com.example.ui.theme.MityraTextSecondary
@@ -72,6 +77,8 @@ import com.example.ui.theme.MityraVerifiedTeal
 fun ProfileScreen(
     userProfile: UserProfileEntity?,
     onEditOrRegisterClick: () -> Unit,
+    onSubscribeMembershipClick: () -> Unit = {},
+    onOpenAdminPanelClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isGpsSharingEnabled by remember { mutableStateOf(true) }
@@ -279,6 +286,226 @@ fun ProfileScreen(
                                 fontSize = 16.sp
                             )
                             Text(if (isCompanion) "Rate Card" else "Escrow Wallet", color = MityraTextMuted, fontSize = 11.sp)
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // --- Razorpay VIP Membership Card (₹49/month) ---
+            val hasActiveSub = userProfile?.hasActiveMembership == true
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("razorpay_membership_card"),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (hasActiveSub) Color(0xFF14291F) else Color(0xFF0C2340)
+                ),
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(
+                    1.dp,
+                    if (hasActiveSub) MityraSafetyGreen.copy(alpha = 0.5f) else Color(0xFF0C83FF).copy(alpha = 0.4f)
+                )
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(if (hasActiveSub) MityraSafetyGreen.copy(alpha = 0.2f) else Color(0xFF0C83FF)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (hasActiveSub) Icons.Default.WorkspacePremium else Icons.Default.Lock,
+                                    contentDescription = null,
+                                    tint = if (hasActiveSub) MityraSafetyGreen else Color.White,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (hasActiveSub) "Mityra VIP Club Active" else "Mityra VIP Membership",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(if (hasActiveSub) MityraSafetyGreen else MityraGold)
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = if (hasActiveSub) "ACTIVE" else "₹49/mo",
+                                            color = Color.Black,
+                                            fontWeight = FontWeight.ExtraBold,
+                                            fontSize = 9.sp
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = if (hasActiveSub) "Auto-renewal via Razorpay • 30 Days Valid" else "Powered by Razorpay Payment Gateway",
+                                    color = if (hasActiveSub) MityraSafetyGreen else Color(0xFF528FF0),
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = if (hasActiveSub)
+                            "• 0% Platform Convenience Fees\n• Verified Shield Host Priority Badge\n• 24x7 Emergency SOS Priority Dispatch"
+                        else
+                            "Unlock 0% booking fees, direct VIP companion messaging, verified profile badge, and 24x7 priority emergency response for just ₹49/month.",
+                        color = MityraTextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    if (hasActiveSub) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color.Black.copy(alpha = 0.25f))
+                                .padding(horizontal = 10.dp, vertical = 6.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Payment ID: ${userProfile?.membershipPaymentId ?: "pay_RzpMityra"}", color = MityraTextMuted, fontSize = 11.sp)
+                            Text("Auto-Renews in 30 Days", color = MityraGold, fontSize = 11.sp, fontWeight = FontWeight.SemiBold)
+                        }
+                    } else {
+                        Button(
+                            onClick = onSubscribeMembershipClick,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("profile_subscribe_razorpay_button"),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0C83FF)),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(18.dp)
+                                        .clip(CircleShape)
+                                        .background(Color.White),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("R", color = Color(0xFF0C83FF), fontWeight = FontWeight.Black, fontSize = 11.sp)
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text("Subscribe via Razorpay (₹49/mo)", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // --- Admin & Partner Operations Console Card ---
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("profile_admin_console_card"),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1B1B26)),
+                shape = RoundedCornerShape(18.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MityraGold.copy(alpha = 0.35f))
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Box(
+                                modifier = Modifier
+                                    .size(38.dp)
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(MityraGold.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.AdminPanelSettings,
+                                    contentDescription = null,
+                                    tint = MityraGold,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = "Admin & Ops Console",
+                                        color = Color.White,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(4.dp))
+                                            .background(MityraCoral.copy(alpha = 0.2f))
+                                            .padding(horizontal = 5.dp, vertical = 1.dp)
+                                    ) {
+                                        Text(
+                                            text = "PORTAL",
+                                            color = MityraCoral,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 9.sp
+                                        )
+                                    }
+                                }
+                                Text(
+                                    text = "Companion KYC approval & ₹49 revenue tracking",
+                                    color = MityraTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
+
+                    Text(
+                        text = "Review companion self-registration applications, approve or reject host profiles, inspect government ID dossiers, and monitor live Razorpay ₹49 subscription collections.",
+                        color = MityraTextSecondary,
+                        fontSize = 12.sp,
+                        lineHeight = 16.sp
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Button(
+                        onClick = onOpenAdminPanelClick,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(44.dp)
+                            .testTag("profile_open_admin_button"),
+                        colors = ButtonDefaults.buttonColors(containerColor = MityraGold),
+                        shape = RoundedCornerShape(10.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.AdminPanelSettings, contentDescription = null, tint = Color.Black, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text("Open Admin Panel", color = Color.Black, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                         }
                     }
                 }

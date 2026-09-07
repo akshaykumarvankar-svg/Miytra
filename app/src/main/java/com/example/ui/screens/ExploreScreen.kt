@@ -88,6 +88,7 @@ fun ExploreScreen(
     onChatClick: (Companion) -> Unit,
     onVerifyClick: (Companion) -> Unit,
     onSelfRegisterClick: () -> Unit = {},
+    onSubscribeMembershipClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
@@ -180,6 +181,46 @@ fun ExploreScreen(
                         Text(
                             text = "Join Now →",
                             color = MityraCoral,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    // VIP Membership Callout Strip inside Hero
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(Color(0xFF0C2340))
+                            .border(1.dp, Color(0xFF0C83FF).copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                            .clickable { onSubscribeMembershipClick() }
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .testTag("explore_vip_banner"),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(text = "👑", fontSize = 14.sp)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(
+                                    text = "Mityra VIP Club (₹49/mo)",
+                                    color = Color.White,
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                Text(
+                                    text = "0% booking fees • Razorpay instant activation",
+                                    color = Color(0xFF528FF0),
+                                    fontSize = 10.sp
+                                )
+                            }
+                        }
+                        Text(
+                            text = "Subscribe →",
+                            color = Color(0xFF0C83FF),
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         )

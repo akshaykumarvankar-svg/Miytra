@@ -6,17 +6,26 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.example.data.model.BookingEntity
 import com.example.data.model.ChatMessageEntity
+import com.example.data.model.CompanionApplicationEntity
+import com.example.data.model.MembershipPaymentEntity
 import com.example.data.model.UserProfileEntity
 
 @Database(
-    entities = [BookingEntity::class, ChatMessageEntity::class, UserProfileEntity::class],
-    version = 2,
+    entities = [
+        BookingEntity::class,
+        ChatMessageEntity::class,
+        UserProfileEntity::class,
+        CompanionApplicationEntity::class,
+        MembershipPaymentEntity::class
+    ],
+    version = 3,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
     abstract fun bookingDao(): BookingDao
     abstract fun chatDao(): ChatDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun adminDao(): AdminDao
 
     companion object {
         @Volatile

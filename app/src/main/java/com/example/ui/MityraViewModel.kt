@@ -10,8 +10,10 @@ import com.example.data.local.AppDatabase
 import com.example.data.model.BookingEntity
 import com.example.data.model.ChatMessageEntity
 import com.example.data.model.Companion
+import com.example.data.model.CompanionApplicationEntity
 import com.example.data.model.CompanionGender
 import com.example.data.model.EventCategory
+import com.example.data.model.MembershipPaymentEntity
 import com.example.data.model.Review
 import com.example.data.model.UserProfileEntity
 import com.example.data.model.VerificationInfo
@@ -35,7 +37,12 @@ enum class ScreenTab {
 
 class MityraViewModel(application: Application) : AndroidViewModel(application) {
     private val database = AppDatabase.getDatabase(application)
-    val repository = MityraRepository(database.bookingDao(), database.chatDao(), database.userProfileDao())
+    val repository = MityraRepository(
+        database.bookingDao(),
+        database.chatDao(),
+        database.userProfileDao(),
+        database.adminDao()
+    )
 
     // Navigation & Tabs
     private val _currentTab = MutableStateFlow(ScreenTab.EXPLORE)
@@ -68,6 +75,50 @@ class MityraViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _isSelfRegisterOpen = MutableStateFlow(false)
     val isSelfRegisterOpen: StateFlow<Boolean> = _isSelfRegisterOpen.asStateFlow()
+
+    // Admin Panel States
+    private val _isAdminPanelOpen = MutableStateFlow(false)
+    val isAdminPanelOpen: StateFlow<Boolean> = _isAdminPanelOpen.asStateFlow()
+
+    private val _adminFilterStatus = MutableStateFlow("ALL") // "ALL", "PENDING", "APPROVED", "REJECTED"
+    val adminFilterStatus: StateFlow<String> = _adminFilterStatus.asStateFlow()
+
+    val companionApplications: StateFlow<List<CompanionApplicationEntity>> = repository.companionApplications
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    val membershipPayments: StateFlow<List<MembershipPaymentEntity>> = repository.membershipPayments
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
+    // Razorpay Gateway States (₹49/month VIP Membership)
+    private val _isRazorpayModalOpen = MutableStateFlow(false)
+    val isRazorpayModalOpen: StateFlow<Boolean> = _isRazorpayModalOpen.asStateFlow()
+
+    private val _razorpaySelectedMethod = MutableStateFlow("UPI") // "UPI", "CARD", "NETBANKING", "WALLET"
+    val razorpaySelectedMethod: StateFlow<String> = _razorpaySelectedMethod.asStateFlow()
+
+    private val _razorpayUpiApp = MutableStateFlow("Google Pay")
+    val razorpayUpiApp: StateFlow<String> = _razorpayUpiApp.asStateFlow()
+
+    private val _razorpayCustomVpa = MutableStateFlow("")
+    val razorpayCustomVpa: StateFlow<String> = _razorpayCustomVpa.asStateFlow()
+
+    private val _razorpayCardNumber = MutableStateFlow("")
+    val razorpayCardNumber: StateFlow<String> = _razorpayCardNumber.asStateFlow()
+
+    private val _razorpayCardExpiry = MutableStateFlow("")
+    val razorpayCardExpiry: StateFlow<String> = _razorpayCardExpiry.asStateFlow()
+
+    private val _razorpayCardCvv = MutableStateFlow("")
+    val razorpayCardCvv: StateFlow<String> = _razorpayCardCvv.asStateFlow()
+
+    private val _razorpaySelectedBank = MutableStateFlow("HDFC Bank")
+    val razorpaySelectedBank: StateFlow<String> = _razorpaySelectedBank.asStateFlow()
+
+    private val _isRazorpayProcessing = MutableStateFlow(false)
+    val isRazorpayProcessing: StateFlow<Boolean> = _isRazorpayProcessing.asStateFlow()
+
+    private val _razorpaySuccessPayment = MutableStateFlow<MembershipPaymentEntity?>(null)
+    val razorpaySuccessPayment: StateFlow<MembershipPaymentEntity?> = _razorpaySuccessPayment.asStateFlow()
 
     // User Profile from Room Database
     val userProfile: StateFlow<UserProfileEntity?> = repository.getUserProfile()
@@ -395,10 +446,138 @@ class MityraViewModel(application: Application) : AndroidViewModel(application) 
         _isSelfRegisterOpen.value = false
     }
 
+    // Admin Panel Controls
+    fun openAdminPanel() {
+        _isAdminPanelOpen.value = true
+    }
+
+    fun closeAdminPanel() {
+        _isAdminPanelOpen.value = false
+    }
+
+    fun setAdminFilterStatus(status: String) {
+        _adminFilterStatus.value = status
+    }
+
+    fun approveCompanionApplication(applicationId: String, notes: String = "Approved by Admin Operations") {
+        viewModelScope.launch {
+            repository.approveApplication(applicationId, notes)
+        }
+    }
+
+    fun rejectCompanionApplication(applicationId: String, reason: String = "Application does not meet safety criteria") {
+        viewModelScope.launch {
+            repository.rejectApplication(applicationId, reason)
+        }
+    }
+
+    // Razorpay Flow Controls (₹49/month VIP Membership)
+    fun openRazorpayCheckout() {
+        _isRazorpayProcessing.value = false
+        _razorpaySuccessPayment.value = null
+        _isRazorpayModalOpen.value = true
+    }
+
+    fun closeRazorpayCheckout() {
+        _isRazorpayModalOpen.value = false
+        _isRazorpayProcessing.value = false
+    }
+
+    fun setRazorpayMethod(method: String) {
+        _razorpaySelectedMethod.value = method
+    }
+
+    fun setRazorpayUpiApp(app: String) {
+        _razorpayUpiApp.value = app
+    }
+
+    fun setRazorpayCustomVpa(vpa: String) {
+        _razorpayCustomVpa.value = vpa
+    }
+
+    fun setRazorpayCardDetails(number: String, expiry: String, cvv: String) {
+        _razorpayCardNumber.value = number
+        _razorpayCardExpiry.value = expiry
+        _razorpayCardCvv.value = cvv
+    }
+
+    fun setRazorpayBank(bank: String) {
+        _razorpaySelectedBank.value = bank
+    }
+
+    fun confirmRazorpayPayment() {
+        viewModelScope.launch {
+            _isRazorpayProcessing.value = true
+            kotlinx.coroutines.delay(1500)
+
+            val user = userProfile.value
+            val userName = user?.name ?: "Guest User"
+            val userPhone = user?.phone ?: "+91 98201 44892"
+            val userEmail = user?.email ?: "guest.user@example.com"
+            val paymentId = "pay_Rzp${System.currentTimeMillis().toString().takeLast(8)}"
+            val orderId = "order_Mityra_${System.currentTimeMillis().toString().takeLast(6)}"
+
+            val methodLabel = when (_razorpaySelectedMethod.value) {
+                "UPI" -> "UPI (${_razorpayUpiApp.value})"
+                "CARD" -> "Card (•••• ${if (_razorpayCardNumber.value.length >= 4) _razorpayCardNumber.value.takeLast(4) else "4242"})"
+                "NETBANKING" -> "Netbanking (${_razorpaySelectedBank.value})"
+                else -> "UPI Autopay"
+            }
+
+            val paymentRecord = MembershipPaymentEntity(
+                paymentId = paymentId,
+                orderId = orderId,
+                userId = user?.id ?: "primary_user",
+                userName = userName,
+                userPhone = userPhone,
+                userEmail = userEmail,
+                amount = 49,
+                currency = "INR",
+                paymentMethod = methodLabel,
+                status = "SUCCESS",
+                planName = "Mityra VIP Club (₹49/mo)",
+                razorpaySignature = "rzp_sig_${java.util.UUID.randomUUID().toString().replace("-", "").take(16)}",
+                timestamp = System.currentTimeMillis(),
+                validUntil = System.currentTimeMillis() + 30L * 24 * 60 * 60 * 1000
+            )
+
+            repository.recordRazorpayMembershipPayment(paymentRecord)
+            _isRazorpayProcessing.value = false
+            _razorpaySuccessPayment.value = paymentRecord
+        }
+    }
+
     fun saveUserProfile(profile: UserProfileEntity, registerAsCompanion: Boolean = false) {
         viewModelScope.launch {
             repository.saveUserProfile(profile)
             if (registerAsCompanion) {
+                val newAppId = "app_${System.currentTimeMillis()}"
+                val newApp = CompanionApplicationEntity(
+                    id = newAppId,
+                    userId = profile.id,
+                    name = profile.name,
+                    age = profile.age,
+                    gender = profile.gender,
+                    city = profile.city,
+                    neighborhood = profile.neighborhood,
+                    phone = profile.phone,
+                    email = profile.email,
+                    bio = profile.bio,
+                    interests = profile.interests,
+                    languages = profile.languages,
+                    primaryCategory = profile.primaryCategory,
+                    hourlyRate = profile.hourlyRate,
+                    boundaries = profile.boundaries,
+                    kycDocumentType = profile.kycDocumentType,
+                    kycIdMasked = profile.kycIdMasked,
+                    isKycVerified = profile.isKycVerified,
+                    status = "APPROVED",
+                    adminNotes = "Instant partner activation with Aadhaar/ID verification.",
+                    submittedAt = System.currentTimeMillis(),
+                    reviewedAt = System.currentTimeMillis()
+                )
+                repository.submitCompanionApplication(newApp)
+
                 val newCompanion = Companion(
                     id = "custom_comp_${System.currentTimeMillis()}",
                     name = profile.name,

@@ -34,5 +34,9 @@ data class UserProfileEntity(
     val primaryCategory: String = "dinner",
     val hourlyRate: Int = 750,
     val boundaries: String = "Public venues only, Strictly platonic companion, Safe travel coordination",
+    val hasActiveMembership: Boolean = false,
+    val membershipExpiry: Long? = null,
+    val membershipPaymentId: String? = null,
+    val companionApplicationStatus: String = "APPROVED",
     val createdAt: Long = System.currentTimeMillis()
 )
