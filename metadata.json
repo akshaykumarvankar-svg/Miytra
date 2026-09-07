@@ -1,0 +1,6 @@
+{
+  "name": "Mityra",
+  "description": "Social event companion booking platform for verified companions on hourly or event basis.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
