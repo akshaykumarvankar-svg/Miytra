@@ -38,6 +38,7 @@ class MityraRepository(
 
     val companionApplications: Flow<List<CompanionApplicationEntity>> = adminDao.getAllApplications()
     val membershipPayments: Flow<List<MembershipPaymentEntity>> = adminDao.getAllPayments()
+    val allUsers: Flow<List<UserProfileEntity>> = userProfileDao.getAllUserProfiles()
 
     fun getAllCompanions(): List<Companion> {
         return companionsList + _customCompanions.value
@@ -518,9 +519,114 @@ class MityraRepository(
                 )
             )
         }
+
+        // Initialize sample registered user profiles
+        val initialUser = userProfileDao.getUserProfileOnce("primary_user")
+        if (initialUser == null) {
+            userProfileDao.saveUserProfile(
+                UserProfileEntity(
+                    id = "primary_user",
+                    name = "Rohan Sharma",
+                    role = "MEMBER",
+                    password = "pass123",
+                    age = 24,
+                    gender = "Male",
+                    city = "Mumbai",
+                    neighborhood = "Bandra West",
+                    phone = "+91 98201 44892",
+                    email = "rohan.sharma@example.com",
+                    bio = "Tech enthusiast who enjoys rooftop dining, art galleries, and weekend film screenings.",
+                    interests = "Fine Dining 🍷, Modern Art 🎨, Film Screenings 🎬, Rooftop Lounges 🍸",
+                    languages = "English, Hindi",
+                    emergencyContactName = "Priya Sharma",
+                    emergencyContactPhone = "+91 98201 44892",
+                    safeWord = "SUNSHINE",
+                    isKycVerified = true,
+                    kycDocumentType = "Aadhaar Card",
+                    kycIdMasked = "XXXX-XXXX-8921",
+                    hasActiveMembership = true,
+                    membershipExpiry = System.currentTimeMillis() + 28L * 24 * 3600 * 1000,
+                    membershipPaymentId = "pay_RzpMityra88201",
+                    companionApplicationStatus = "APPROVED",
+                    createdAt = System.currentTimeMillis() - 86400000 * 15
+                )
+            )
+            userProfileDao.saveUserProfile(
+                UserProfileEntity(
+                    id = "usr_priya_n",
+                    name = "Priya Nambiar",
+                    role = "COMPANION",
+                    password = "pass123",
+                    age = 25,
+                    gender = "Female",
+                    city = "Mumbai",
+                    neighborhood = "Worli Sea Face",
+                    phone = "+91 98451 33221",
+                    email = "priya.n@designstudio.co",
+                    bio = "Interior designer and lifestyle curator. Passionate about jazz music and art galleries.",
+                    interests = "Art Galleries 🎨, Jazz Nights 🎷, Architectural Tours 🏛️",
+                    languages = "English, Hindi, Malayalam",
+                    primaryCategory = "Art Events & Dinners",
+                    hourlyRate = 800,
+                    hasActiveMembership = true,
+                    membershipExpiry = System.currentTimeMillis() + 22L * 24 * 3600 * 1000,
+                    membershipPaymentId = "pay_RzpMityra77103",
+                    companionApplicationStatus = "APPROVED",
+                    createdAt = System.currentTimeMillis() - 86400000 * 10
+                )
+            )
+            userProfileDao.saveUserProfile(
+                UserProfileEntity(
+                    id = "usr_aryan_v",
+                    name = "Aryan Varma",
+                    role = "MEMBER",
+                    password = "pass123",
+                    age = 27,
+                    gender = "Male",
+                    city = "Mumbai",
+                    neighborhood = "Colaba",
+                    phone = "+91 98112 33445",
+                    email = "aryan.varma@fintech.io",
+                    bio = "Fintech analyst looking for great companions for weekend film screenings and music festivals.",
+                    interests = "Film Screenings 🎬, EDM Festivals 🎧, Coffee Tastings ☕",
+                    languages = "English, Hindi",
+                    hasActiveMembership = false,
+                    membershipExpiry = null,
+                    membershipPaymentId = null,
+                    companionApplicationStatus = "NOT_APPLIED",
+                    createdAt = System.currentTimeMillis() - 86400000 * 5
+                )
+            )
+            userProfileDao.saveUserProfile(
+                UserProfileEntity(
+                    id = "admin_mityra_master",
+                    name = "Mityra Operations Admin",
+                    role = "ADMIN",
+                    password = "admin123",
+                    age = 32,
+                    gender = "Non-binary",
+                    city = "Mumbai",
+                    neighborhood = "BKC Complex",
+                    phone = "+91 99999 00000",
+                    email = "admin@mityra.com",
+                    bio = "Lead Trust & Safety Administrator at Mityra Platform Operations.",
+                    interests = "Platform Security 🛡️, Trust & Safety 🔒, Community Ops 📋",
+                    languages = "English, Hindi",
+                    hasActiveMembership = true,
+                    membershipExpiry = System.currentTimeMillis() + 365L * 24 * 3600 * 1000,
+                    membershipPaymentId = "admin_corp_license",
+                    companionApplicationStatus = "APPROVED",
+                    createdAt = System.currentTimeMillis() - 86400000 * 30
+                )
+            )
+        }
     }
 
     fun getUserProfile(): Flow<UserProfileEntity?> = userProfileDao.getUserProfile()
+
+    suspend fun getUserByEmail(email: String): UserProfileEntity? = userProfileDao.getUserByEmail(email)
+
+    suspend fun getUserByPhone(phone: String): UserProfileEntity? = userProfileDao.getUserByPhone(phone)
 
     suspend fun saveUserProfile(profile: UserProfileEntity) {
         userProfileDao.saveUserProfile(profile)

@@ -15,6 +15,15 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profiles WHERE id = :id LIMIT 1")
     suspend fun getUserProfileOnce(id: String = "primary_user"): UserProfileEntity?
 
+    @Query("SELECT * FROM user_profiles ORDER BY createdAt DESC")
+    fun getAllUserProfiles(): Flow<List<UserProfileEntity>>
+
+    @Query("SELECT * FROM user_profiles WHERE email = :email LIMIT 1")
+    suspend fun getUserByEmail(email: String): UserProfileEntity?
+
+    @Query("SELECT * FROM user_profiles WHERE phone = :phone LIMIT 1")
+    suspend fun getUserByPhone(phone: String): UserProfileEntity?
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveUserProfile(profile: UserProfileEntity)
 

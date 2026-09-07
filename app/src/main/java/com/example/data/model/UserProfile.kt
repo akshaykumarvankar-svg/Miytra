@@ -5,14 +5,16 @@ import androidx.room.PrimaryKey
 
 enum class UserRole(val label: String, val subtitle: String) {
     MEMBER("Event Guest / Member", "Looking to book vetted companions for dinners, movies, & events"),
-    COMPANION("Verified Companion", "Join Mityra to accompany vetted members and earn hourly fees")
+    COMPANION("Verified Companion", "Join Mityra to accompany vetted members and earn hourly fees"),
+    ADMIN("Administrator", "Access platform operations, review KYC applications, and audit payments")
 }
 
 @Entity(tableName = "user_profiles")
 data class UserProfileEntity(
     @PrimaryKey val id: String = "primary_user",
     val name: String,
-    val role: String = "MEMBER", // "MEMBER" or "COMPANION"
+    val role: String = "MEMBER", // "MEMBER", "COMPANION", or "ADMIN"
+    val password: String = "pass123",
     val age: Int = 24,
     val gender: String = "Male", // "Male", "Female", "Non-binary"
     val city: String = "Mumbai",
@@ -34,9 +36,9 @@ data class UserProfileEntity(
     val primaryCategory: String = "dinner",
     val hourlyRate: Int = 750,
     val boundaries: String = "Public venues only, Strictly platonic companion, Safe travel coordination",
-    val hasActiveMembership: Boolean = false,
-    val membershipExpiry: Long? = null,
-    val membershipPaymentId: String? = null,
+    val hasActiveMembership: Boolean = true,
+    val membershipExpiry: Long? = System.currentTimeMillis() + 30L * 24 * 3600 * 1000,
+    val membershipPaymentId: String? = "pay_RzpMityra88201",
     val companionApplicationStatus: String = "APPROVED",
     val createdAt: Long = System.currentTimeMillis()
 )

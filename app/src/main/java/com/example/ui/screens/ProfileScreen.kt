@@ -79,6 +79,7 @@ fun ProfileScreen(
     onEditOrRegisterClick: () -> Unit,
     onSubscribeMembershipClick: () -> Unit = {},
     onOpenAdminPanelClick: () -> Unit = {},
+    onLogoutClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var isGpsSharingEnabled by remember { mutableStateOf(true) }
@@ -216,6 +217,33 @@ fun ProfileScreen(
                                 text = "$neighborhood, $city • ${userProfile?.gender ?: "Member"} • Age ${userProfile?.age ?: 25}",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MityraTextMuted,
+                                fontSize = 11.sp
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Box(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(6.dp))
+                                        .background(if (isCompanion) MityraGold.copy(alpha = 0.2f) else MityraCoral.copy(alpha = 0.2f))
+                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        text = if (isCompanion) "ROLE: HOST" else "ROLE: MEMBER",
+                                        color = if (isCompanion) MityraGold else MityraCoral,
+                                        fontSize = 10.sp,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    text = userProfile?.phone ?: "+91 98201 44892",
+                                    color = MityraTextSecondary,
+                                    fontSize = 11.sp
+                                )
+                            }
+                            Text(
+                                text = userProfile?.email ?: "rohan.sharma@example.com",
+                                color = MityraTeal,
                                 fontSize = 11.sp
                             )
                         }
@@ -743,6 +771,38 @@ fun ProfileScreen(
                             Box(modifier = Modifier.fillMaxWidth().height(0.5.dp).background(MityraCardBorder))
                         }
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // Active Sign Out Button
+            Button(
+                onClick = onLogoutClick,
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFF2E1520)
+                ),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFFF5252).copy(alpha = 0.6f)),
+                shape = RoundedCornerShape(14.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+                    .testTag("logout_button")
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = "Sign Out",
+                        tint = Color(0xFFFF5252),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Sign Out of Account",
+                        color = Color(0xFFFF5252),
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Bold
+                    )
                 }
             }
 

@@ -75,6 +75,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.CompanionApplicationEntity
 import com.example.data.model.MembershipPaymentEntity
+import com.example.data.model.UserProfileEntity
 import com.example.ui.theme.MityraCoral
 import com.example.ui.theme.MityraCoralDark
 import com.example.ui.theme.MityraDarkBackground

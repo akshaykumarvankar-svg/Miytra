@@ -16,6 +16,7 @@ import com.example.data.model.EventCategory
 import com.example.data.model.MembershipPaymentEntity
 import com.example.data.model.Review
 import com.example.data.model.UserProfileEntity
+import com.example.data.model.UserRole
 import com.example.data.model.VerificationInfo
 import com.example.data.repository.MityraRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -75,6 +76,55 @@ class MityraViewModel(application: Application) : AndroidViewModel(application) 
 
     private val _isSelfRegisterOpen = MutableStateFlow(false)
     val isSelfRegisterOpen: StateFlow<Boolean> = _isSelfRegisterOpen.asStateFlow()
+
+    // Authentication & Role-Based Access Control
+    private val _isLoggedIn = MutableStateFlow(true)
+    val isLoggedIn: StateFlow<Boolean> = _isLoggedIn.asStateFlow()
+
+    private val _isAdminLoggedIn = MutableStateFlow(false)
+    val isAdminLoggedIn: StateFlow<Boolean> = _isAdminLoggedIn.asStateFlow()
+
+    private val _currentUserRole = MutableStateFlow(UserRole.MEMBER)
+    val currentUserRole: StateFlow<UserRole> = _currentUserRole.asStateFlow()
+
+    private val _authScreenMode = MutableStateFlow("LOGIN") // "LOGIN", "SIGNUP", "ADMIN_LOGIN"
+    val authScreenMode: StateFlow<String> = _authScreenMode.asStateFlow()
+
+    private val _authLoginMethod = MutableStateFlow("MOBILE") // "MOBILE" or "EMAIL"
+    val authLoginMethod: StateFlow<String> = _authLoginMethod.asStateFlow()
+
+    private val _authSelectedRole = MutableStateFlow(UserRole.MEMBER)
+    val authSelectedRole: StateFlow<UserRole> = _authSelectedRole.asStateFlow()
+
+    private val _authPhoneInput = MutableStateFlow("+91 98201 44892")
+    val authPhoneInput: StateFlow<String> = _authPhoneInput.asStateFlow()
+
+    private val _authOtpInput = MutableStateFlow("")
+    val authOtpInput: StateFlow<String> = _authOtpInput.asStateFlow()
+
+    private val _isOtpSent = MutableStateFlow(false)
+    val isOtpSent: StateFlow<Boolean> = _isOtpSent.asStateFlow()
+
+    private val _authEmailInput = MutableStateFlow("rohan.sharma@example.com")
+    val authEmailInput: StateFlow<String> = _authEmailInput.asStateFlow()
+
+    private val _authPasswordInput = MutableStateFlow("pass123")
+    val authPasswordInput: StateFlow<String> = _authPasswordInput.asStateFlow()
+
+    private val _authNameInput = MutableStateFlow("")
+    val authNameInput: StateFlow<String> = _authNameInput.asStateFlow()
+
+    private val _authCityInput = MutableStateFlow("Mumbai")
+    val authCityInput: StateFlow<String> = _authCityInput.asStateFlow()
+
+    private val _authErrorMessage = MutableStateFlow<String?>(null)
+    val authErrorMessage: StateFlow<String?> = _authErrorMessage.asStateFlow()
+
+    private val _authSuccessMessage = MutableStateFlow<String?>(null)
+    val authSuccessMessage: StateFlow<String?> = _authSuccessMessage.asStateFlow()
+
+    val allRegisteredUsers: StateFlow<List<UserProfileEntity>> = repository.allUsers
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Admin Panel States
     private val _isAdminPanelOpen = MutableStateFlow(false)
@@ -619,6 +669,294 @@ class MityraViewModel(application: Application) : AndroidViewModel(application) 
             }
             _isSelfRegisterOpen.value = false
         }
+    }
+
+    // Authentication Setters and Actions
+    fun setAuthScreenMode(mode: String) {
+        _authScreenMode.value = mode
+        _authErrorMessage.value = null
+        _authSuccessMessage.value = null
+    }
+
+    fun setAuthLoginMethod(method: String) {
+        _authLoginMethod.value = method
+        _authErrorMessage.value = null
+    }
+
+    fun setAuthSelectedRole(role: UserRole) {
+        _authSelectedRole.value = role
+        if (role == UserRole.ADMIN) {
+            _authEmailInput.value = "admin@mityra.com"
+            _authPasswordInput.value = "admin123"
+        }
+    }
+
+    fun setAuthPhoneInput(phone: String) {
+        _authPhoneInput.value = phone
+    }
+
+    fun setAuthOtpInput(otp: String) {
+        _authOtpInput.value = otp
+    }
+
+    fun setAuthEmailInput(email: String) {
+        _authEmailInput.value = email
+    }
+
+    fun setAuthPasswordInput(password: String) {
+        _authPasswordInput.value = password
+    }
+
+    fun setAuthNameInput(name: String) {
+        _authNameInput.value = name
+    }
+
+    fun setAuthCityInput(city: String) {
+        _authCityInput.value = city
+    }
+
+    fun clearAuthMessages() {
+        _authErrorMessage.value = null
+        _authSuccessMessage.value = null
+    }
+
+    fun sendOtp() {
+        val phone = _authPhoneInput.value.trim()
+        if (phone.length < 10) {
+            _authErrorMessage.value = "Please enter a valid 10-digit mobile number"
+            return
+        }
+        _isOtpSent.value = true
+        _authSuccessMessage.value = "OTP sent to $phone (Demo code: 123456)"
+        _authErrorMessage.value = null
+    }
+
+    fun autoFillOtp() {
+        _authOtpInput.value = "123456"
+        _authErrorMessage.value = null
+    }
+
+    fun verifyOtpAndLogin() {
+        val phone = _authPhoneInput.value.trim()
+        val otp = _authOtpInput.value.trim()
+        if (otp.length != 6) {
+            _authErrorMessage.value = "Please enter the 6-digit OTP"
+            return
+        }
+        if (otp != "123456" && otp != "000000") {
+            _authErrorMessage.value = "Invalid OTP code. Use demo code: 123456"
+            return
+        }
+
+        viewModelScope.launch {
+            val role = _authSelectedRole.value
+            if (role == UserRole.ADMIN) {
+                _isAdminLoggedIn.value = true
+                _isAdminPanelOpen.value = true
+                _isLoggedIn.value = true
+                _currentUserRole.value = UserRole.ADMIN
+                _authErrorMessage.value = null
+                return@launch
+            }
+
+            val existing = repository.getUserByPhone(phone)
+            if (existing != null) {
+                _isLoggedIn.value = true
+                _currentUserRole.value = when (existing.role.uppercase()) {
+                    "COMPANION" -> UserRole.COMPANION
+                    "ADMIN" -> UserRole.ADMIN
+                    else -> UserRole.MEMBER
+                }
+            } else {
+                val newProfile = UserProfileEntity(
+                    id = "primary_user",
+                    name = if (role == UserRole.COMPANION) "Verified Companion" else "Mityra Member",
+                    role = role.name,
+                    phone = phone,
+                    email = "member.${phone.takeLast(4)}@mityra.com",
+                    hasActiveMembership = (role == UserRole.MEMBER)
+                )
+                repository.saveUserProfile(newProfile)
+                _isLoggedIn.value = true
+                _currentUserRole.value = role
+            }
+            _authErrorMessage.value = null
+            _isOtpSent.value = false
+            _authOtpInput.value = ""
+        }
+    }
+
+    fun loginWithEmailPassword() {
+        val email = _authEmailInput.value.trim()
+        val password = _authPasswordInput.value.trim()
+        val role = _authSelectedRole.value
+
+        if (email.isBlank() || !email.contains("@")) {
+            _authErrorMessage.value = "Please enter a valid email address"
+            return
+        }
+        if (password.isBlank()) {
+            _authErrorMessage.value = "Please enter your password"
+            return
+        }
+
+        // Admin check: admin@mityra.com / admin123
+        if (role == UserRole.ADMIN || email.equals("admin@mityra.com", ignoreCase = true)) {
+            if (email.equals("admin@mityra.com", ignoreCase = true) && password == "admin123") {
+                _isAdminLoggedIn.value = true
+                _isAdminPanelOpen.value = true
+                _isLoggedIn.value = true
+                _currentUserRole.value = UserRole.ADMIN
+                _authErrorMessage.value = null
+                return
+            } else {
+                _authErrorMessage.value = "Invalid Admin credentials! Use demo: admin@mityra.com / admin123"
+                return
+            }
+        }
+
+        viewModelScope.launch {
+            val existing = repository.getUserByEmail(email)
+            if (existing != null) {
+                if (existing.password == password || password == "pass123") {
+                    _isLoggedIn.value = true
+                    _currentUserRole.value = when (existing.role.uppercase()) {
+                        "COMPANION" -> UserRole.COMPANION
+                        "ADMIN" -> UserRole.ADMIN
+                        else -> UserRole.MEMBER
+                    }
+                    _authErrorMessage.value = null
+                } else {
+                    _authErrorMessage.value = "Incorrect password! Default demo password is pass123"
+                }
+            } else {
+                val newProfile = UserProfileEntity(
+                    id = "primary_user",
+                    name = email.substringBefore("@").replace(".", " ").replaceFirstChar { it.uppercase() },
+                    role = role.name,
+                    email = email,
+                    password = password,
+                    hasActiveMembership = (role == UserRole.MEMBER)
+                )
+                repository.saveUserProfile(newProfile)
+                _isLoggedIn.value = true
+                _currentUserRole.value = role
+                _authErrorMessage.value = null
+            }
+        }
+    }
+
+    fun signupUser() {
+        val name = _authNameInput.value.trim()
+        val email = _authEmailInput.value.trim()
+        val phone = _authPhoneInput.value.trim()
+        val password = _authPasswordInput.value.trim()
+        val role = _authSelectedRole.value
+        val city = _authCityInput.value.trim().ifBlank { "Mumbai" }
+
+        if (name.isBlank()) {
+            _authErrorMessage.value = "Please enter your full name"
+            return
+        }
+        if (email.isBlank() || !email.contains("@")) {
+            _authErrorMessage.value = "Please enter a valid email"
+            return
+        }
+        if (phone.length < 10) {
+            _authErrorMessage.value = "Please enter a valid phone number"
+            return
+        }
+        if (password.length < 4) {
+            _authErrorMessage.value = "Password must be at least 4 characters"
+            return
+        }
+
+        viewModelScope.launch {
+            val newProfile = UserProfileEntity(
+                id = "primary_user",
+                name = name,
+                role = role.name,
+                email = email,
+                phone = phone,
+                city = city,
+                password = password,
+                hasActiveMembership = true,
+                membershipPaymentId = "pay_RzpSignup_${System.currentTimeMillis().toString().takeLast(6)}"
+            )
+            repository.saveUserProfile(newProfile)
+            _isLoggedIn.value = true
+            _currentUserRole.value = role
+            _authErrorMessage.value = null
+            _authSuccessMessage.value = "Account created successfully! Welcome to Mityra."
+        }
+    }
+
+    fun quickFillAdminCredentials() {
+        _authSelectedRole.value = UserRole.ADMIN
+        _authEmailInput.value = "admin@mityra.com"
+        _authPasswordInput.value = "admin123"
+        _authLoginMethod.value = "EMAIL"
+        _authErrorMessage.value = null
+    }
+
+    fun quickDemoLogin(role: UserRole) {
+        viewModelScope.launch {
+            when (role) {
+                UserRole.ADMIN -> {
+                    _isAdminLoggedIn.value = true
+                    _isAdminPanelOpen.value = true
+                    _isLoggedIn.value = true
+                    _currentUserRole.value = UserRole.ADMIN
+                }
+                UserRole.COMPANION -> {
+                    _isLoggedIn.value = true
+                    _isAdminLoggedIn.value = false
+                    _isAdminPanelOpen.value = false
+                    _currentUserRole.value = UserRole.COMPANION
+                    val profile = repository.getUserProfile().firstOrNull() ?: UserProfileEntity(
+                        name = "Priya Nambiar",
+                        role = "COMPANION",
+                        phone = "+91 98451 33221",
+                        email = "priya.n@designstudio.co",
+                        hasActiveMembership = true
+                    )
+                    repository.saveUserProfile(profile.copy(role = "COMPANION"))
+                }
+                UserRole.MEMBER -> {
+                    _isLoggedIn.value = true
+                    _isAdminLoggedIn.value = false
+                    _isAdminPanelOpen.value = false
+                    _currentUserRole.value = UserRole.MEMBER
+                    val profile = repository.getUserProfile().firstOrNull() ?: UserProfileEntity(
+                        name = "Rohan Sharma",
+                        role = "MEMBER",
+                        phone = "+91 98201 44892",
+                        email = "rohan.sharma@example.com",
+                        hasActiveMembership = true
+                    )
+                    repository.saveUserProfile(profile.copy(role = "MEMBER"))
+                }
+            }
+            _authErrorMessage.value = null
+        }
+    }
+
+    fun logout() {
+        _isLoggedIn.value = false
+        _isAdminLoggedIn.value = false
+        _isAdminPanelOpen.value = false
+        _authScreenMode.value = "LOGIN"
+        _authErrorMessage.value = null
+        _authSuccessMessage.value = "Logged out successfully"
+    }
+
+    fun logoutAdmin() {
+        _isAdminLoggedIn.value = false
+        _isAdminPanelOpen.value = false
+        _isLoggedIn.value = false
+        _authScreenMode.value = "LOGIN"
+        _authErrorMessage.value = null
+        _authSuccessMessage.value = "Admin session ended"
     }
 }
 
